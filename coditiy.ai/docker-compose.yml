@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: scheduler-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-scheduler}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgrespassword}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-scheduler}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  scheduler-api:
+    build: .
+    container_name: scheduler-api
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-scheduler}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgrespassword}
+      SPRING_PROFILES_ACTIVE: api
+      JWT_SECRET: ${JWT_SECRET:-jobseek-secret-key-change-in-production-must-be-at-least-256-bits}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/health || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+
+  scheduler-worker-1:
+    build: .
+    container_name: scheduler-worker-1
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-scheduler}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgrespassword}
+      SPRING_PROFILES_ACTIVE: worker
+      SCHEDULER_WORKER_ID: worker-node-1
+      JWT_SECRET: ${JWT_SECRET:-jobseek-secret-key-change-in-production-must-be-at-least-256-bits}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      scheduler-api:
+        condition: service_started
+    restart: unless-stopped
+
+  scheduler-worker-2:
+    build: .
+    container_name: scheduler-worker-2
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-scheduler}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgrespassword}
+      SPRING_PROFILES_ACTIVE: worker
+      SCHEDULER_WORKER_ID: worker-node-2
+      JWT_SECRET: ${JWT_SECRET:-jobseek-secret-key-change-in-production-must-be-at-least-256-bits}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      scheduler-api:
+        condition: service_started
+    restart: unless-stopped
+
+  scheduler-dashboard:
+    build: ./dashboard
+    container_name: scheduler-dashboard
+    ports:
+      - "3001:80"
+    depends_on:
+      scheduler-api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    name: jobseek_postgres_data

@@ -1,0 +1,43 @@
+# Java build artifacts
+target/
+*.class
+*.jar
+*.war
+
+# Maven wrapper cache
+.mvn/repository/
+
+# IDE files
+.idea/
+*.iml
+*.iws
+.vscode/
+*.code-workspace
+
+# Frontend build artifacts
+dashboard/node_modules/
+dashboard/dist/
+dashboard/.vite/
+
+# Logs
+*.log
+build_output.log
+lint_output.log
+verification.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Test scripts / temp files
+phase*.sh
+*.sh
+
+# Environment files (keep .env.example)
+.env
+.env.local
+.env.production

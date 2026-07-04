@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: distributed-job-scheduler
+  jackson:
+    serialization:
+      fail-on-empty-beans: false
+  profiles:
+    active: api,worker # Default to both for easy local development
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/scheduler}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgrespassword}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: never
+    properties:
+      org.quartz.jobStore.isClustered: true
+      org.quartz.jobStore.clusterCheckinInterval: 10000
+      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    ai.coditiy.scheduler: DEBUG
+    org.hibernate.SQL: ERROR
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - [jobId=%X{jobId:-}] - %msg%n"
+
+# Security Configuration
+jwt:
+  secret: ${JWT_SECRET:9yB_E_H_McQfTjWnZr4u7x_A_C_F_JaNdRgUkXp2s5v8y_B_D_G_KbPeShVmYq3_very_long_secret_key_32_bytes}
+  expiration-ms: 86400000 # 24 hours
+
+# Custom scheduler settings
+scheduler:
+  worker:
+    id: ${SCHEDULER_WORKER_ID:worker-node-${random.uuid}}
+    poll-interval-ms: 1000
+    heartbeat-interval-ms: 10000
+  reaper:
+    enabled: true
+    interval-ms: 30000
+    dead-threshold-ms: 30000
+    claim-timeout-ms: 60000
+  websocket:
+    allowed-origins: "*"
